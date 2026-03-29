@@ -151,7 +151,7 @@ class CVController extends Controller
     public function uploadPhoto(Request $request)
     {
         $request->validate([
-            'photo' => 'required|image|max:2048'
+            'photo' => 'required|file|mimes:jpg,jpeg,png,webp|max:5120'
         ]);
 
         if ($request->hasFile('photo')) {

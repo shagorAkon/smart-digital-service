@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import CVBuilder from './pages/CVBuilder';
+import TemplateSelection from './pages/TemplateSelection';
 
 const ProtectedRoute = ({ children, requireAdmin, requireCVBuilder }) => {
   const { user, loading } = useAuth();
@@ -30,7 +31,15 @@ function App() {
         element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
       />
       <Route 
+        path="/cv-templates" 
+        element={<ProtectedRoute requireCVBuilder><TemplateSelection /></ProtectedRoute>} 
+      />
+      <Route 
         path="/cv-builder" 
+        element={<ProtectedRoute requireCVBuilder><CVBuilder /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/cv-builder/:id" 
         element={<ProtectedRoute requireCVBuilder><CVBuilder /></ProtectedRoute>} 
       />
       <Route 
