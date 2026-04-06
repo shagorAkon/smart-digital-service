@@ -14,6 +14,11 @@ class CVTemplate extends Model
 
     public function cvs()
     {
-        return $this->hasMany(Cv::class, 'template', 'slug');
+        return $this->hasMany(Cv::class, 'template_id', 'id');
     }
+
+    protected $casts = [
+        'design_config' => 'array',
+        'is_active' => 'boolean'
+    ];
 }

@@ -6,6 +6,8 @@ import ModernTemplate from '../components/cv/ModernTemplate';
 import MinimalTemplate from '../components/cv/MinimalTemplate';
 import CreativeTemplate from '../components/cv/CreativeTemplate';
 import CorporateTemplate from '../components/cv/CorporateTemplate';
+import TemplateEngine from '../components/cv/TemplateEngine/TemplateEngine';
+import ElegantTemplate from '../components/cv/ElegantTemplate';
 
 import {
   DndContext,
@@ -53,6 +55,7 @@ export default function CVBuilder() {
   const [initialLoading, setInitialLoading] = useState(!!id);
   const isFirstRender = useRef(true);
   const fileInputRef = useRef(null);
+  const [templateConfigMap, setTemplateConfigMap] = useState({});
 
   const [cvData, setCvData] = useState({
     id: id || null,
@@ -88,6 +91,23 @@ export default function CVBuilder() {
       try {
         const res = await axios.get('/cv-templates');
         setAvailableTemplates(res.data);
+        
+        const mapped = {};
+        res.data.forEach(t => {
+           let parsed;
+           try { parsed = typeof t.design_config === 'string' ? JSON.parse(t.design_config) : t.design_config; } catch (e) { parsed = {}; }
+           mapped[t.id] = parsed;
+           mapped[t.slug] = parsed;
+        });
+        setTemplateConfigMap(mapped);
+
+        // If new CV, grab template ID from local storage
+        if (!id) {
+           const storedTemplateId = localStorage.getItem('selected_template_id');
+           if (storedTemplateId) {
+              setCvData(prev => ({...prev, template_id: storedTemplateId}));
+           }
+        }
       } catch (error) {
         console.error('Failed to load templates');
       }
@@ -446,10 +466,18 @@ export default function CVBuilder() {
           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(slate-400 1px, transparent 1px), linear-gradient(90deg, slate-400 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
           
           <div id="cv-preview-container" className="transform scale-[0.6] 2xl:scale-[0.8] origin-center hover:scale-[0.62] 2xl:hover:scale-[0.82] transition-transform duration-500 will-change-transform shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)]">
-            {cvData.template === 'minimal' && <MinimalTemplate cvData={cvData} />}
-            {cvData.template === 'creative' && <CreativeTemplate cvData={cvData} />}
-            {cvData.template === 'corporate' && <CorporateTemplate cvData={cvData} />}
-            {(!cvData.template || cvData.template === 'modern') && <ModernTemplate cvData={cvData} />}
+            {cvData.template_id && templateConfigMap[cvData.template_id] ? (
+               <TemplateEngine cvData={cvData} config={templateConfigMap[cvData.template_id]} />
+            ) : cvData.template && templateConfigMap[cvData.template] ? (
+               <TemplateEngine cvData={cvData} config={templateConfigMap[cvData.template]} />
+            ) : (
+               <>
+                 {cvData.template === 'minimal' && <MinimalTemplate cvData={cvData} />}
+                 {cvData.template === 'creative' && <CreativeTemplate cvData={cvData} />}
+                 {cvData.template === 'corporate' && <CorporateTemplate cvData={cvData} />}
+                 {(!cvData.template || cvData.template === 'modern') && <ModernTemplate cvData={cvData} />}
+               </>
+            )}
           </div>
 
           <div className="absolute bottom-6 right-6 flex flex-col gap-2 print:hidden">

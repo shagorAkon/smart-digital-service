@@ -108,15 +108,28 @@ class CVController extends Controller
 
     public function generate(Request $request)
     {
-        $data = $request->all();
-        $templateName = $data['template'] ?? 'minimal';
-        $viewName = "cv.templates.{$templateName}";
+        $cvData = $request->all();
         
-        if (!view()->exists($viewName)) {
-            $viewName = 'cv-template';
+        // Find which template to render using template_id
+        if (isset($cvData['template_id'])) {
+            $templateModel = \App\Models\CVTemplate::find($cvData['template_id']);
+            $slug = $templateModel ? 'master_engine' : 'modern';
+        } else {
+            $slug = isset($cvData['template']) ? $cvData['template'] : 'modern';
+        }
+        
+        // Add parsed config to cvData so Blade can read it
+        if (isset($templateModel) && $templateModel) {
+            $cvData['design_config'] = is_string($templateModel->design_config) ? json_decode($templateModel->design_config, true) : $templateModel->design_config;
         }
 
-        $pdf = Pdf::loadView($viewName, ['cv' => $data]);
+        // Fallback to modern if blade doesn't exist
+        $viewName = "cv.templates.{$slug}";
+        if (!view()->exists($viewName)) {
+            $viewName = "cv.templates.modern";
+        }
+
+        $pdf = Pdf::loadView($viewName, ['cv' => $cvData]);
         return $pdf->stream('generated-cv.pdf');
     }
 
@@ -146,7 +159,8 @@ class CVController extends Controller
             'address' => 'nullable|string|max:255',
             'summary' => 'nullable|string',
             'photo_path' => 'nullable|string',
-            'template' => 'nullable|string',
+            'template_id' => 'nullable|exists:cv_templates,id',
+            'template' => 'nullable|string', // Keeping for legacy temporarily
             'primary_color' => 'nullable|string',
             'font_family' => 'nullable|string',
             'layout' => 'nullable|string',
