@@ -31,10 +31,13 @@
 </head>
 <body>
     <?php 
-      $items = $cv['items'] ?? [];
-      $experiences = array_filter($items, function($i){ return isset($i['type']) && $i['type'] === 'experience'; });
-      $educations = array_filter($items, function($i){ return isset($i['type']) && $i['type'] === 'education'; });
-      $skills = array_filter($items, function($i){ return isset($i['type']) && $i['type'] === 'skill'; });
+      $experiences = $cv['experiences'] ?? [];
+      $educations = $cv['educations'] ?? [];
+      $skills = $cv['skills'] ?? [];
+      $projects = $cv['projects'] ?? [];
+      $certifications = $cv['certifications'] ?? [];
+      $languages = $cv['languages'] ?? [];
+      $social_links = $cv['social_links'] ?? [];
       $photo = isset($cv['photo_path']) && !empty($cv['photo_path']) ? public_path(str_replace('/storage', 'storage', $cv['photo_path'])) : null;
     ?>
 
@@ -65,12 +68,12 @@
             <table>
                 <tr>
                     <td class="item-left">
-                        {{ $exp['data']['startDate'] ?? '' }}<br/>to<br/>{{ $exp['data']['endDate'] ?? 'Present' }}
+                        {{ $exp['start_date'] ?? $exp['startDate'] ?? '' }}<br/>to<br/>{{ strtolower(trim($exp['current'] ?? '')) === '1' || strtolower(trim($exp['current'] ?? '')) === 'true' ? 'Present' : ($exp['end_date'] ?? $exp['endDate'] ?? '') }}
                     </td>
                     <td class="item-right">
-                        <div class="item-title">{{ $exp['data']['jobTitle'] ?? '' }}</div>
-                        <div class="item-meta">{{ $exp['data']['company'] ?? '' }}</div>
-                        <div class="item-desc">{{ $exp['data']['description'] ?? '' }}</div>
+                        <div class="item-title">{{ $exp['position'] ?? $exp['jobTitle'] ?? '' }}</div>
+                        <div class="item-meta">{{ $exp['company'] ?? '' }}</div>
+                        <div class="item-desc">{{ $exp['description'] ?? '' }}</div>
                     </td>
                 </tr>
             </table>
@@ -86,11 +89,14 @@
             <table>
                 <tr>
                     <td class="item-left">
-                        {{ $edu['data']['year'] ?? '' }}
+                        {{ $edu['start_date'] ?? $edu['startDate'] ?? '' }} - {{ $edu['end_date'] ?? $edu['endDate'] ?? $edu['year'] ?? '' }}
                     </td>
                     <td class="item-right">
-                        <div class="item-title">{{ $edu['data']['degree'] ?? '' }}</div>
-                        <div class="item-meta">{{ $edu['data']['institution'] ?? '' }}</div>
+                        <div class="item-title">{{ $edu['degree'] ?? '' }}</div>
+                        <div class="item-meta">{{ $edu['institution'] ?? '' }}</div>
+                        @if(!empty($edu['description']))
+                            <div class="item-desc" style="margin-top:5px;">{{ $edu['description'] }}</div>
+                        @endif
                     </td>
                 </tr>
             </table>
@@ -103,9 +109,32 @@
         <div class="section-title">Expertise</div>
         <div style="margin-bottom: 25px;">
             @foreach($skills as $skill)
-                <span style="display: inline-block; border: 1px solid {{ $cv['primary_color'] ?? '#3b82f6' }}; color: {{ $cv['primary_color'] ?? '#3b82f6' }}; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; margin-right: 8px; margin-bottom: 8px;">{{ $skill['data']['name'] ?? '' }}</span>
+                <span style="display: inline-block; border: 1px solid {{ $cv['primary_color'] ?? '#3b82f6' }}; color: {{ $cv['primary_color'] ?? '#3b82f6' }}; padding: 5px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; margin-right: 8px; margin-bottom: 8px;">
+                    {{ $skill['name'] ?? '' }} {{ isset($skill['level']) && !empty($skill['level']) ? '('.$skill['level'].')' : '' }}
+                </span>
             @endforeach
         </div>
+        @endif
+        
+        @if(count($projects) > 0)
+        <div style="margin-top: 20px;"></div>
+        <div class="section-title">Projects</div>
+        @foreach($projects as $proj)
+        <div class="item-row">
+            <table>
+                <tr>
+                    <td class="item-left" style="width:10%">★</td>
+                    <td class="item-right" style="width:90%">
+                        <div class="item-title">{{ $proj['title'] ?? '' }}</div>
+                        @if(!empty($proj['link']))
+                            <div class="item-meta"><a href="{{ $proj['link'] }}">{{ $proj['link'] }}</a></div>
+                        @endif
+                        <div class="item-desc">{{ $proj['description'] ?? '' }}</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        @endforeach
         @endif
     </div>
 </body>

@@ -36,10 +36,12 @@
     @endif
 
     <?php 
-      $items = $cv['items'] ?? [];
-      $experiences = array_filter($items, function($i){ return isset($i['type']) && $i['type'] === 'experience'; });
-      $educations = array_filter($items, function($i){ return isset($i['type']) && $i['type'] === 'education'; });
-      $skills = array_filter($items, function($i){ return isset($i['type']) && $i['type'] === 'skill'; });
+      $experiences = $cv['experiences'] ?? [];
+      $educations = $cv['educations'] ?? [];
+      $skills = $cv['skills'] ?? [];
+      $projects = $cv['projects'] ?? [];
+      $certifications = $cv['certifications'] ?? [];
+      $languages = $cv['languages'] ?? [];
     ?>
 
     @if(count($experiences) > 0)
@@ -48,11 +50,11 @@
         @foreach($experiences as $exp)
         <div class="item-row">
             <div class="item-title">
-                {{ $exp['data']['jobTitle'] ?? '' }} 
-                <span class="date-right">{{ $exp['data']['startDate'] ?? '' }} - {{ $exp['data']['endDate'] ?? '' }}</span>
+                {{ $exp['position'] ?? $exp['jobTitle'] ?? '' }} 
+                <span class="date-right">{{ $exp['start_date'] ?? $exp['startDate'] ?? '' }} - {{ strtolower(trim($exp['current'] ?? '')) === '1' || strtolower(trim($exp['current'] ?? '')) === 'true' ? 'Present' : ($exp['end_date'] ?? $exp['endDate'] ?? '') }}</span>
             </div>
-            <div class="item-meta">{{ $exp['data']['company'] ?? '' }}</div>
-            <div class="item-desc">{{ $exp['data']['description'] ?? '' }}</div>
+            <div class="item-meta">{{ $exp['company'] ?? '' }}</div>
+            <div class="item-desc">{{ $exp['description'] ?? '' }}</div>
         </div>
         @endforeach
     </div>
@@ -64,10 +66,13 @@
         @foreach($educations as $edu)
         <div class="item-row">
             <div class="item-title">
-                {{ $edu['data']['degree'] ?? '' }} 
-                <span class="date-right">{{ $edu['data']['year'] ?? '' }}</span>
+                {{ $edu['degree'] ?? '' }} 
+                <span class="date-right">{{ $edu['start_date'] ?? $edu['startDate'] ?? '' }} {{ isset($edu['end_date']) || isset($edu['endDate']) || isset($edu['year']) ? '- ' . ($edu['end_date'] ?? $edu['endDate'] ?? $edu['year'] ?? '') : '' }}</span>
             </div>
-            <div class="item-meta">{{ $edu['data']['institution'] ?? '' }}</div>
+            <div class="item-meta">{{ $edu['institution'] ?? '' }}</div>
+            @if(!empty($edu['description']))
+                <div class="item-desc">{{ $edu['description'] }}</div>
+            @endif
         </div>
         @endforeach
     </div>
@@ -77,7 +82,51 @@
     <div class="section">
         <div class="section-title">Skills</div>
         @foreach($skills as $skill)
-            <span class="skill-badge">{{ $skill['data']['name'] ?? '' }}</span>
+            <span class="skill-badge">{{ $skill['name'] ?? '' }} {{ isset($skill['level']) && !empty($skill['level']) ? '('.$skill['level'].')' : '' }}</span>
+        @endforeach
+    </div>
+    @endif
+
+    @if(count($projects) > 0)
+    <div class="section">
+        <div class="section-title">Projects</div>
+        @foreach($projects as $proj)
+        <div class="item-row">
+            <div class="item-title">
+                {{ $proj['title'] ?? '' }} 
+                @if(!empty($proj['link']))
+                    <span style="font-weight:normal; font-size:12px; margin-left:10px;">({{ $proj['link'] }})</span>
+                @endif
+            </div>
+            <div class="item-desc">{{ $proj['description'] ?? '' }}</div>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
+    @if(count($certifications) > 0)
+    <div class="section">
+        <div class="section-title">Certifications</div>
+        @foreach($certifications as $cert)
+        <div class="item-row">
+            <div class="item-title">
+                {{ $cert['name'] ?? '' }} 
+                <span class="date-right">{{ $cert['date'] ?? '' }}</span>
+            </div>
+            <div class="item-meta">{{ $cert['issuer'] ?? '' }}</div>
+            @if(!empty($cert['url']))
+               <div class="item-desc"><a href="{{ $cert['url'] }}">{{ $cert['url'] }}</a></div>
+            @endif
+        </div>
+        @endforeach
+    </div>
+    @endif
+
+    @if(count($languages) > 0)
+    <div class="section">
+        <div class="section-title">Languages</div>
+        @foreach($languages as $lang)
+            <span class="skill-badge">{{ $lang['name'] ?? '' }} {{ isset($lang['proficiency']) && !empty($lang['proficiency']) ? '— '.$lang['proficiency'] : '' }}</span>
         @endforeach
     </div>
     @endif

@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\DB;
 
 class CVController extends Controller
 {
+    protected $relations = [
+        'experiences', 'educations', 'skills', 'projects', 
+        'certifications', 'languages'
+    ];
+
     public function index(Request $request)
     {
         $cvs = $request->user()->cvs()->orderBy('updated_at', 'desc')->get();
@@ -17,88 +22,51 @@ class CVController extends Controller
 
     public function show(Request $request, $id)
     {
-        $cv = $request->user()->cvs()->with('items')->findOrFail($id);
+        $cv = $request->user()->cvs()->with([
+            'experiences', 'educations', 'skills', 'projects', 
+            'certifications', 'languages', 'socialLinks'
+        ])->findOrFail($id);
+        
+        // Load legacy items if they exist so the frontend doesn't break
+        $cv->load('items');
+        
         return response()->json($cv);
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'full_name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string|max:255',
-            'summary' => 'nullable|string',
-            'photo_path' => 'nullable|string',
-            'template' => 'nullable|string',
-            'primary_color' => 'nullable|string',
-            'font_family' => 'nullable|string',
-            'layout' => 'nullable|string',
-            'items' => 'nullable|array'
-        ]);
+        $validated = $this->validateCv($request);
 
         DB::beginTransaction();
         try {
-            $cv = $request->user()->cvs()->create(collect($validated)->except('items')->toArray());
+            $cv = $request->user()->cvs()->create(collect($validated)->except(array_merge($this->relations, ['social_links', 'items']))->toArray());
 
-            if (!empty($validated['items'])) {
-                foreach ($validated['items'] as $index => $item) {
-                    $cv->items()->create([
-                        'type' => $item['type'],
-                        'data' => $item['data'],
-                        'order' => $item['order'] ?? $index
-                    ]);
-                }
-            }
+            $this->syncRelations($cv, $request);
+
             DB::commit();
-            
-            return response()->json($cv->load('items'), 201);
+            return response()->json($this->getLoadedCv($cv), 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to create CV'], 500);
+            return response()->json(['message' => 'Failed to create CV: ' . $e->getMessage()], 500);
         }
     }
 
     public function update(Request $request, $id)
     {
         $cv = $request->user()->cvs()->findOrFail($id);
-
-        $validated = $request->validate([
-            'title' => 'nullable|string|max:255',
-            'full_name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string|max:255',
-            'summary' => 'nullable|string',
-            'photo_path' => 'nullable|string',
-            'template' => 'nullable|string',
-            'primary_color' => 'nullable|string',
-            'font_family' => 'nullable|string',
-            'layout' => 'nullable|string',
-            'items' => 'nullable|array'
-        ]);
+        $validated = $this->validateCv($request);
 
         DB::beginTransaction();
         try {
-            $cv->update(collect($validated)->except('items')->toArray());
+            $cv->update(collect($validated)->except(array_merge($this->relations, ['social_links', 'items']))->toArray());
 
-            if (isset($validated['items'])) {
-                $cv->items()->delete(); // clear old
-                foreach ($validated['items'] as $index => $item) {
-                    $cv->items()->create([
-                        'type' => $item['type'],
-                        'data' => $item['data'],
-                        'order' => $item['order'] ?? $index
-                    ]);
-                }
-            }
+            $this->syncRelations($cv, $request);
+
             DB::commit();
-
-            return response()->json($cv->load('items'));
+            return response()->json($this->getLoadedCv($cv));
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Failed to update CV'], 500);
+            return response()->json(['message' => 'Failed to update CV: ' . $e->getMessage()], 500);
         }
     }
 
@@ -111,7 +79,7 @@ class CVController extends Controller
 
     public function duplicate(Request $request, $id)
     {
-        $cv = $request->user()->cvs()->with('items')->findOrFail($id);
+        $cv = $this->getLoadedCv($request->user()->cvs()->findOrFail($id));
         
         DB::beginTransaction();
         try {
@@ -119,14 +87,19 @@ class CVController extends Controller
             $newCv->title = $newCv->title . ' (Copy)';
             $newCv->save();
 
-            foreach ($cv->items as $item) {
-                $newItem = $item->replicate();
-                $newItem->cv_id = $newCv->id;
-                $newItem->save();
+            // Duplicate relations
+            foreach (array_merge($this->relations, ['socialLinks', 'items']) as $relation) {
+                if ($cv->relationLoaded($relation)) {
+                    foreach ($cv->{$relation} as $item) {
+                        $newItem = $item->replicate();
+                        $newItem->cv_id = $newCv->id;
+                        $newItem->save();
+                    }
+                }
             }
-            DB::commit();
 
-            return response()->json($newCv->load('items'));
+            DB::commit();
+            return response()->json($this->getLoadedCv($newCv));
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Failed to duplicate CV'], 500);
@@ -135,9 +108,7 @@ class CVController extends Controller
 
     public function generate(Request $request)
     {
-        // Accept the full payload to generate on the fly
         $data = $request->all();
-        
         $templateName = $data['template'] ?? 'minimal';
         $viewName = "cv.templates.{$templateName}";
         
@@ -148,6 +119,7 @@ class CVController extends Controller
         $pdf = Pdf::loadView($viewName, ['cv' => $data]);
         return $pdf->stream('generated-cv.pdf');
     }
+
     public function uploadPhoto(Request $request)
     {
         $request->validate([
@@ -158,7 +130,69 @@ class CVController extends Controller
             $path = $request->file('photo')->store('cv-photos', 'public');
             return response()->json(['photo_path' => '/storage/' . $path]);
         }
-
         return response()->json(['message' => 'No file uploaded'], 400);
+    }
+
+    /**
+     * Helpers
+     */
+    private function validateCv(Request $request)
+    {
+        return $request->validate([
+            'title' => 'required|string|max:255',
+            'full_name' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:255',
+            'summary' => 'nullable|string',
+            'photo_path' => 'nullable|string',
+            'template' => 'nullable|string',
+            'primary_color' => 'nullable|string',
+            'font_family' => 'nullable|string',
+            'layout' => 'nullable|string',
+            'experiences' => 'nullable|array',
+            'educations' => 'nullable|array',
+            'skills' => 'nullable|array',
+            'projects' => 'nullable|array',
+            'certifications' => 'nullable|array',
+            'languages' => 'nullable|array',
+            'social_links' => 'nullable|array',
+            'items' => 'nullable|array'
+        ]);
+    }
+
+    private function syncRelations(Cv $cv, Request $request)
+    {
+        foreach ($this->relations as $relation) {
+            if ($request->has($relation)) {
+                $cv->{$relation}()->delete();
+                foreach ($request->input($relation) as $index => $item) {
+                    $item['order'] = $item['order'] ?? $index;
+                    $cv->{$relation}()->create($item);
+                }
+            }
+        }
+        
+        if ($request->has('social_links')) {
+            $cv->socialLinks()->delete();
+            foreach ($request->input('social_links') as $index => $item) {
+                $item['order'] = $item['order'] ?? $index;
+                $cv->socialLinks()->create($item);
+            }
+        }
+
+        // Legacy support
+        if ($request->has('items')) {
+            $cv->items()->delete();
+            foreach ($request->input('items') as $index => $item) {
+                $item['order'] = $item['order'] ?? $index;
+                $cv->items()->create($item);
+            }
+        }
+    }
+
+    private function getLoadedCv(Cv $cv)
+    {
+        return $cv->load(array_merge($this->relations, ['socialLinks', 'items']));
     }
 }

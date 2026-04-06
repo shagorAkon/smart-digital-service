@@ -20,4 +20,39 @@ class Cv extends Model
     {
         return $this->hasMany(CvItem::class)->orderBy('order');
     }
+
+    public function experiences()
+    {
+        return $this->hasMany(Experience::class)->orderBy('order');
+    }
+
+    public function educations()
+    {
+        return $this->hasMany(Education::class)->orderBy('order');
+    }
+
+    public function skills()
+    {
+        return $this->hasMany(Skill::class)->orderBy('order');
+    }
+
+    public function projects()
+    {
+        return $this->hasMany(Project::class)->orderBy('order');
+    }
+
+    public function certifications()
+    {
+        return $this->hasMany(Certification::class)->orderBy('order');
+    }
+
+    public function languages()
+    {
+        return $this->hasMany(Language::class)->orderBy('order');
+    }
+
+    public function socialLinks()
+    {
+        return $this->hasMany(SocialLink::class)->orderBy('order');
+    }
 }
