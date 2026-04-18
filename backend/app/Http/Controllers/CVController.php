@@ -11,7 +11,7 @@ class CVController extends Controller
 {
     protected $relations = [
         'experiences', 'educations', 'skills', 'projects', 
-        'certifications', 'languages'
+        'certifications', 'languages', 'interests'
     ];
 
     public function index(Request $request)
@@ -24,7 +24,7 @@ class CVController extends Controller
     {
         $cv = $request->user()->cvs()->with([
             'experiences', 'educations', 'skills', 'projects', 
-            'certifications', 'languages', 'socialLinks'
+            'certifications', 'languages', 'socialLinks', 'interests'
         ])->findOrFail($id);
         
         // Load legacy items if they exist so the frontend doesn't break
@@ -158,6 +158,7 @@ class CVController extends Controller
             'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:255',
             'summary' => 'nullable|string',
+            'career_objective' => 'nullable|string',
             'photo_path' => 'nullable|string',
             'template_id' => 'nullable|exists:cv_templates,id',
             'template' => 'nullable|string', // Keeping for legacy temporarily

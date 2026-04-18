@@ -1,7 +1,7 @@
 import React from 'react';
 
 export default function CreativeTemplate({ cvData }) {
-  const { experiences = [], educations = [], skills = [], projects = [], certifications = [], languages = [], social_links = [] } = cvData;
+  const { experiences = [], educations = [], skills = [], projects = [], certifications = [], languages = [], interests = [], social_links = [] } = cvData;
   const primaryColor = cvData.primary_color || '#db2777';
 
   return (
@@ -34,18 +34,33 @@ export default function CreativeTemplate({ cvData }) {
       <div className="flex flex-1 mt-6">
         {/* Left Column (Main Content) */}
         <div className="w-[65%] pl-12 pr-8 py-8 text-slate-800">
-           {cvData.summary && (
-              <div className="mb-10">
-                 <h3 className="text-2xl font-black text-slate-900 mb-4 flex items-center gap-3">
-                    <span className="w-8 h-[3px]" style={{ backgroundColor: primaryColor }}></span>
-                    PROFILE
-                 </h3>
-                 <p className="text-[14px] leading-relaxed text-slate-600 font-medium">{cvData.summary}</p>
-              </div>
-           )}
+           
+           {/* Section 1: Summary & Objective */}
+           <div className="space-y-10">
+              {cvData.summary && (
+                <div>
+                    <h3 className="text-2xl font-black text-slate-900 mb-4 flex items-center gap-3">
+                      <span className="w-8 h-[3px]" style={{ backgroundColor: primaryColor }}></span>
+                      PROFILE
+                    </h3>
+                    <p className="text-[14px] leading-relaxed text-slate-600 font-medium">{cvData.summary}</p>
+                </div>
+              )}
 
+              {cvData.career_objective && (
+                <div>
+                    <h3 className="text-2xl font-black text-slate-900 mb-4 flex items-center gap-3">
+                      <span className="w-8 h-[3px]" style={{ backgroundColor: primaryColor }}></span>
+                      OBJECTIVE
+                    </h3>
+                    <p className="text-[14px] leading-relaxed text-slate-600 font-medium italic">{cvData.career_objective}</p>
+                </div>
+              )}
+           </div>
+
+           {/* Section 2: Experience */}
            {experiences.length > 0 && (
-              <div className="mb-10">
+              <div className="mt-10">
                  <h3 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
                     <span className="w-8 h-[3px]" style={{ backgroundColor: primaryColor }}></span>
                     EXPERIENCE
@@ -68,8 +83,9 @@ export default function CreativeTemplate({ cvData }) {
               </div>
            )}
 
+           {/* Section 3: Projects */}
            {projects.length > 0 && (
-              <div className="mb-10">
+              <div className="mt-10">
                  <h3 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
                     <span className="w-8 h-[3px]" style={{ backgroundColor: primaryColor }}></span>
                     PROJECTS
@@ -80,6 +96,24 @@ export default function CreativeTemplate({ cvData }) {
                           <h4 className="font-bold text-[15px] text-slate-900 mb-1">{proj.title}</h4>
                           {proj.link && <a href={proj.link} className="text-[12px] text-blue-500 mb-2 block">{proj.link}</a>}
                           <p className="text-[13px] text-slate-600 leading-relaxed font-medium">{proj.description}</p>
+                       </div>
+                    ))}
+                 </div>
+              </div>
+           )}
+
+           {/* Section 4: Certifications */}
+           {certifications.length > 0 && (
+              <div className="mt-10">
+                 <h3 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
+                    <span className="w-8 h-[3px]" style={{ backgroundColor: primaryColor }}></span>
+                    CERTIFICATIONS
+                 </h3>
+                 <div className="grid grid-cols-2 gap-4">
+                    {certifications.map((cert, i) => (
+                       <div key={i} className="flex flex-col p-4 bg-slate-50 rounded-xl border border-slate-100">
+                          <h4 className="font-bold text-[14px] text-slate-900 mb-1">{cert.name}</h4>
+                          {cert.issuer && <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase">{cert.issuer}</span>}
                        </div>
                     ))}
                  </div>
@@ -124,6 +158,33 @@ export default function CreativeTemplate({ cvData }) {
                              {edu.start_date || edu.startDate} - {edu.end_date || edu.endDate || edu.year}
                           </div>
                        </div>
+                    ))}
+                 </div>
+              </div>
+           )}
+
+           {languages.length > 0 && (
+              <div>
+                 <h3 className="text-lg font-black text-slate-900 mb-4 uppercase tracking-widest border-b-2 pb-2 inline-block" style={{ borderColor: primaryColor }}>Languages</h3>
+                 <ul className="text-[13px] font-bold text-slate-600 space-y-2">
+                    {languages.map((lang, i) => (
+                       <li key={i} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100">
+                          <span>{lang.name}</span>
+                          <span className="text-[11px] opacity-60">{lang.proficiency}</span>
+                       </li>
+                    ))}
+                 </ul>
+              </div>
+           )}
+
+           {interests.length > 0 && (
+              <div>
+                 <h3 className="text-lg font-black text-slate-900 mb-4 uppercase tracking-widest border-b-2 pb-2 inline-block" style={{ borderColor: primaryColor }}>Interests</h3>
+                 <div className="flex flex-wrap gap-2">
+                    {interests.map((interest, i) => (
+                       <span key={i} className="text-[12px] font-bold text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full">
+                          {interest.name}
+                       </span>
                     ))}
                  </div>
               </div>

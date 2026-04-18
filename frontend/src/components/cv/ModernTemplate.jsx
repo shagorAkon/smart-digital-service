@@ -1,7 +1,7 @@
 import React from 'react';
 
 export default function ModernTemplate({ cvData }) {
-  const { experiences = [], educations = [], skills = [], projects = [], certifications = [], languages = [], social_links = [] } = cvData;
+  const { experiences = [], educations = [], skills = [], projects = [], certifications = [], languages = [], interests = [], social_links = [] } = cvData;
   const primaryColor = cvData.primary_color || '#2563eb';
 
   return (
@@ -72,6 +72,20 @@ export default function ModernTemplate({ cvData }) {
             </ul>
           </div>
         )}
+
+        {/* Interests */}
+        {interests.length > 0 && (
+          <div className="px-8 mt-10">
+            <h3 className="uppercase font-bold tracking-widest mb-3 text-[11px] text-white/50">Interests</h3>
+            <div className="flex flex-wrap gap-2">
+              {interests.map((interest, i) => (
+                <span key={i} className="text-[12px] bg-white/10 px-3 py-1 rounded-lg border border-white/5 font-medium">
+                  {interest.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Content Area */}
@@ -95,6 +109,19 @@ export default function ModernTemplate({ cvData }) {
             </h3>
             <p className="text-[14px] leading-relaxed text-slate-600 text-justify">
               {cvData.summary}
+            </p>
+          </div>
+        )}
+
+        {/* Career Objective */}
+        {cvData.career_objective && (
+          <div className="mb-10 group bg-slate-100 p-5 rounded-2xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
+            <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest mb-3 text-slate-900">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: primaryColor }}></span>
+              Objective
+            </h3>
+            <p className="text-[14px] leading-relaxed text-slate-600">
+              {cvData.career_objective}
             </p>
           </div>
         )}
@@ -176,6 +203,29 @@ export default function ModernTemplate({ cvData }) {
                      <p className="text-[12px] text-slate-500 line-clamp-3 leading-relaxed">{proj.description}</p>
                   </div>
                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Certifications */}
+        {certifications.length > 0 && (
+          <div className="mb-10">
+            <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest mb-5 text-slate-900">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: primaryColor }}></span>
+              Certifications
+            </h3>
+            <div className="space-y-3">
+              {certifications.map((cert, i) => (
+                <div key={i} className="flex items-center gap-4 bg-white p-3 rounded-xl border border-slate-100">
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: primaryColor + '10' }}>
+                    <svg className="w-5 h-5" style={{ color: primaryColor }} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-[14px] text-slate-900">{cert.name}</h4>
+                    {cert.issuer && <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">{cert.issuer}</p>}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

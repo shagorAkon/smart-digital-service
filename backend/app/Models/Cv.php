@@ -55,4 +55,9 @@ class Cv extends Model
     {
         return $this->hasMany(SocialLink::class)->orderBy('order');
     }
+
+    public function interests()
+    {
+        return $this->hasMany(Interest::class)->orderBy('order');
+    }
 }

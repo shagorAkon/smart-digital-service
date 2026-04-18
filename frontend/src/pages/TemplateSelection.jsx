@@ -1,6 +1,70 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../lib/axios';
+
+// Import all template components for live preview rendering
+import ModernTemplate from '../components/cv/ModernTemplate';
+import CreativeTemplate from '../components/cv/CreativeTemplate';
+import MinimalTemplate from '../components/cv/MinimalTemplate';
+import CorporateTemplate from '../components/cv/CorporateTemplate';
+import ElegantTemplate from '../components/cv/ElegantTemplate';
+
+// Sample CV data used to render realistic preview thumbnails
+const SAMPLE_CV = {
+  full_name: 'Alex Johnson',
+  title: 'Senior Product Designer',
+  email: 'alex@example.com',
+  phone: '+1 (555) 987-6543',
+  address: 'San Francisco, CA',
+  summary: 'Award-winning product designer with 8+ years of experience crafting intuitive digital experiences for Fortune 500 companies. Passionate about user-centered design, accessibility, and design systems.',
+  career_objective: 'Seeking a leadership role where I can drive product innovation and mentor the next generation of designers.',
+  photo_path: '',
+  primary_color: '#2563eb',
+  font_family: 'Inter, sans-serif',
+  experiences: [
+    { position: 'Lead Product Designer', company: 'Tech Corp', start_date: 'Jan 2021', end_date: 'Present', description: 'Led a team of 6 designers to ship 3 major product launches. Established design system used across 12 products.' },
+    { position: 'Senior UX Designer', company: 'StartupXYZ', start_date: 'Mar 2018', end_date: 'Dec 2020', description: 'Redesigned the core user journey reducing churn by 35%. Built component library from scratch.' },
+  ],
+  educations: [
+    { degree: 'M.Sc. Human-Computer Interaction', institution: 'Stanford University', start_date: '2015', end_date: '2017' },
+    { degree: 'B.A. Visual Communication', institution: 'UCLA', start_date: '2011', end_date: '2015' },
+  ],
+  skills: [
+    { name: 'Figma', level: 'Expert' },
+    { name: 'React', level: 'Advanced' },
+    { name: 'User Research', level: 'Expert' },
+    { name: 'Design Systems' },
+    { name: 'Prototyping' },
+  ],
+  projects: [
+    { title: 'DesignOps Platform', description: 'Internal tooling for design workflow automation.', link: '' },
+  ],
+  certifications: [
+    { name: 'Google UX Certificate', issuer: 'Google' },
+    { name: 'Certified Scrum Master', issuer: 'Scrum Alliance' },
+  ],
+  languages: [
+    { name: 'English', proficiency: 'Native' },
+    { name: 'Spanish', proficiency: 'Conversational' },
+  ],
+  interests: [
+    { name: 'Photography' },
+    { name: 'Open Source' },
+    { name: 'Travel' },
+  ],
+  social_links: [],
+};
+
+// Map component key to React component
+const COMPONENT_MAP = {
+  modern: ModernTemplate,
+  creative: CreativeTemplate,
+  minimal: MinimalTemplate,
+  corporate: CorporateTemplate,
+  elegant: ElegantTemplate,
+};
+
+const ITEMS_PER_PAGE = 12;
 
 export default function TemplateSelection() {
   const navigate = useNavigate();
@@ -8,10 +72,11 @@ export default function TemplateSelection() {
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     // Fetch all active templates from backend API
-    axios.get('/api/cv-templates')
+    axios.get('/cv-templates')
       .then(res => {
         const data = res.data;
         setTemplates(data);
@@ -34,42 +99,46 @@ export default function TemplateSelection() {
     navigate('/cv-builder');
   };
 
-  // Helper to generate a placeholder thumbnail using color hexes in the config
-  const getThumbnail = (template) => {
-    if (template.preview_image) return template.preview_image;
-    
-    let color = '3b82f6'; // Default blue
+  // Parse design_config safely
+  const getConfig = (template) => {
     try {
-       const config = typeof template.design_config === 'string' ? JSON.parse(template.design_config) : template.design_config;
-       if (config && config.theme_color) {
-          color = config.theme_color.replace('#', '');
-       }
-    } catch (e) {}
-
-    const name = encodeURIComponent(template.name.replace(' ', '+'));
-    return `https://placehold.co/400x560/${color}/ffffff?text=${name}`;
+      return typeof template.design_config === 'string'
+        ? JSON.parse(template.design_config)
+        : (template.design_config || {});
+    } catch { return {}; }
   };
 
   const filtered = activeCategory === 'All' ? templates : templates.filter(t => t.category === activeCategory);
 
+  // Reset page when category changes
+  useEffect(() => { setCurrentPage(1); }, [activeCategory]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500/30">
       
       {/* Header */}
-      <nav className="bg-slate-800/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-700/50 shadow-lg">
+      <nav className="bg-slate-900/50 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5 shadow-2xl">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <button onClick={() => navigate('/dashboard')} className="text-slate-400 hover:text-white flex items-center gap-2 group transition-colors">
-              <svg className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-              Back to Dashboard
+            <button 
+              onClick={() => navigate('/dashboard')} 
+              className="group flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all active:scale-95"
+            >
+              <svg className="w-5 h-5 text-slate-400 group-hover:text-white transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+              <span className="text-sm font-semibold text-slate-400 group-hover:text-white transition-colors">Back</span>
             </button>
-            <div className="h-8 w-px bg-slate-700"></div>
-            <h1 className="text-2xl font-black uppercase tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-              Template Gallery
+            <div className="h-8 w-px bg-white/10"></div>
+            <h1 className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500">
+              CHOOSE YOUR TEMPLATE
             </h1>
           </div>
-          <div className="text-sm font-medium text-slate-400">
-            Choose from <span className="text-emerald-400 font-bold">{templates.length}</span> professional designs.
+          <div className="hidden md:flex items-center gap-4">
+            <div className="px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-400 uppercase tracking-widest">
+              {templates.length} Professional Designs
+            </div>
           </div>
         </div>
       </nav>
@@ -79,12 +148,12 @@ export default function TemplateSelection() {
         
         {/* Category Filters */}
         {!loading && categories.length > 1 && (
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-12 px-4">
                {categories.map(cat => (
                   <button 
                      key={cat}
                      onClick={() => setActiveCategory(cat)}
-                     className={`px-6 py-2.5 rounded-full font-bold uppercase tracking-wider text-[12px] transition-all transform hover:scale-105 active:scale-95 ${activeCategory === cat ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'}`}
+                     className={`px-6 py-2.5 rounded-2xl font-bold uppercase tracking-widest text-[11px] transition-all transform hover:scale-105 active:scale-95 border-2 ${activeCategory === cat ? 'bg-emerald-500 text-white border-emerald-500 shadow-[0_0_30px_-5px_rgba(16,185,129,0.5)]' : 'bg-slate-900/50 text-slate-400 hover:bg-slate-900 hover:text-white border-white/5 hover:border-white/10'}`}
                   >
                      {cat}
                   </button>
@@ -92,59 +161,118 @@ export default function TemplateSelection() {
             </div>
         )}
 
-        {loading ? (
-           <div className="flex justify-center py-20 text-emerald-400">
-              <svg className="animate-spin h-10 w-10" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-           </div>
-        ) : (
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 gap-8">
-             {filtered.map(template => (
-               <div 
-                 key={template.id} 
-                 className="group bg-slate-800 rounded-2xl overflow-hidden shadow-xl border border-slate-700/50 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-emerald-900/20 hover:-translate-y-2 flex flex-col"
-               >
-                 <div className="relative overflow-hidden aspect-[1/1.4] bg-slate-900">
-                   <img 
-                     src={getThumbnail(template)} 
-                     alt={template.name}
-                     className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                   />
-                   
-                   {/* Hover Overlay */}
-                   <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm">
-                     <button 
-                       onClick={() => handleSelect(template.id)}
-                       className="bg-white/10 hover:bg-white/20 text-white border-2 border-white/50 backdrop-blur-md px-6 py-2.5 rounded-full font-bold uppercase tracking-widest text-xs transition-colors"
-                     >
-                       Quick View
-                     </button>
-                   </div>
-                 </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {loading ? (
+             Array(8).fill(0).map((_, i) => (
+                <div key={i} className="animate-pulse flex flex-col gap-4">
+                   <div className="aspect-[1/1.4] bg-slate-800 rounded-3xl"></div>
+                   <div className="h-6 w-2/3 bg-slate-800 rounded-lg"></div>
+                   <div className="h-10 w-full bg-slate-800 rounded-xl"></div>
+                </div>
+             ))
+          ) : (
+             paginated.map(template => {
+               const config = getConfig(template);
+               const compKey = config.component || 'modern';
+               const TemplateComp = COMPONENT_MAP[compKey] || COMPONENT_MAP.modern;
 
-                 <div className="p-5 flex-1 flex flex-col justify-between">
-                   <div>
-                      <h3 className="text-lg font-black text-white mb-1 leading-tight group-hover:text-emerald-400 transition-colors">
-                        {template.name}
-                      </h3>
-                      <span className="inline-block text-[10px] uppercase font-bold tracking-widest text-emerald-400/80 bg-emerald-400/10 px-2 py-0.5 rounded mb-4 border border-emerald-400/20">
-                         {template.category}
-                      </span>
-                   </div>
-                   
-                   <button 
-                     onClick={() => handleSelect(template.id)}
-                     className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-bold uppercase tracking-widest text-xs transition-colors shadow-lg shadow-emerald-500/20"
-                   >
-                     Use Template
-                   </button>
-                 </div>
-               </div>
-             ))}
-           </div>
+               // Build preview data with template-specific colors/fonts
+               const previewData = {
+                 ...SAMPLE_CV,
+                 primary_color: config.primary_color || SAMPLE_CV.primary_color,
+                 font_family: config.font_family || SAMPLE_CV.font_family,
+               };
+
+               return (
+                <div 
+                  key={template.id} 
+                  className="group relative flex flex-col bg-slate-900/50 rounded-3xl border border-white/5 hover:border-emerald-500/40 transition-all duration-500 hover:shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)] hover:-translate-y-3"
+                >
+                  {/* Live Preview Container */}
+                  <div className="relative aspect-[1/1.4] m-3 overflow-hidden rounded-2xl bg-white shadow-inner">
+                    {/* Scaled-down real template render */}
+                    <div 
+                      className="absolute top-0 left-0 origin-top-left pointer-events-none"
+                      style={{ 
+                        width: '850px', 
+                        transform: 'scale(0.22)',
+                        transformOrigin: 'top left',
+                      }}
+                    >
+                      <TemplateComp cvData={previewData} />
+                    </div>
+                    
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-40 group-hover:opacity-20 transition-opacity duration-500"></div>
+
+                    {/* Hover Action */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 backdrop-blur-[1px]">
+                       <button 
+                         onClick={() => handleSelect(template.id)}
+                         className="px-8 py-3 bg-white text-slate-950 rounded-full font-black uppercase text-[10px] tracking-widest shadow-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 hover:scale-105 active:scale-95"
+                       >
+                         Select Template
+                       </button>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="px-5 pb-5 pt-2 flex flex-col">
+                    <div className="flex justify-between items-start gap-4 mb-3">
+                       <div className="flex flex-col gap-1">
+                          <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors leading-tight">
+                            {template.name}
+                          </h3>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+                             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: config.primary_color || '#10b981' }}></span>
+                             {template.category || 'Professional'}
+                          </span>
+                       </div>
+                    </div>
+                    
+                    <button 
+                      onClick={() => handleSelect(template.id)}
+                      className="w-full h-12 bg-white/5 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all duration-300 border border-white/5 hover:border-emerald-500 shadow-lg active:scale-95 flex items-center justify-center gap-3"
+                    >
+                      Use Template
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                  </div>
+                </div>
+               );
+             })
+          )}
+        </div>
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 mt-16">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => p - 1)}
+              className="px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest border border-white/10 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+            >
+              ← Previous
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-10 h-10 rounded-xl font-black text-sm transition-all active:scale-95 ${currentPage === page ? 'bg-emerald-500 text-white shadow-[0_0_20px_-5px_rgba(16,185,129,0.5)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'}`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+              className="px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest border border-white/10 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+            >
+              Next →
+            </button>
+          </div>
         )}
+
       </main>
     </div>
   );

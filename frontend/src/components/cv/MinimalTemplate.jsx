@@ -1,7 +1,7 @@
 import React from 'react';
 
 export default function MinimalTemplate({ cvData }) {
-  const { experiences = [], educations = [], skills = [], projects = [], certifications = [], languages = [], social_links = [] } = cvData;
+  const { experiences = [], educations = [], skills = [], projects = [], certifications = [], languages = [], interests = [], social_links = [] } = cvData;
   const primaryColor = cvData.primary_color || '#333333';
 
   return (
@@ -29,15 +29,26 @@ export default function MinimalTemplate({ cvData }) {
         </div>
       </div>
 
-      {/* Summary */}
-      {cvData.summary && (
-        <div className="mb-10">
-          <h3 className="text-lg font-bold uppercase tracking-widest mb-4 border-b pb-2 text-slate-800" style={{ borderColor: primaryColor }}>Summary</h3>
-          <p className="text-[14px] leading-relaxed text-slate-700 text-justify">
-            {cvData.summary}
-          </p>
-        </div>
-      )}
+      {/* Summary & Objective */}
+      <div className="space-y-6 mb-10">
+        {cvData.summary && (
+          <div>
+            <h3 className="text-lg font-bold uppercase tracking-widest mb-4 border-b pb-2 text-slate-800" style={{ borderColor: primaryColor }}>Summary</h3>
+            <p className="text-[14px] leading-relaxed text-slate-700 text-justify">
+              {cvData.summary}
+            </p>
+          </div>
+        )}
+
+        {cvData.career_objective && (
+          <div>
+            <h3 className="text-lg font-bold uppercase tracking-widest mb-4 border-b pb-2 text-slate-800" style={{ borderColor: primaryColor }}>Objective</h3>
+            <p className="text-[14px] leading-relaxed text-slate-700 italic">
+              {cvData.career_objective}
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Experience */}
       {experiences.length > 0 && (
@@ -99,13 +110,25 @@ export default function MinimalTemplate({ cvData }) {
             </div>
           )}
           {languages.length > 0 && (
-            <div>
+            <div className="mb-8">
               <h3 className="text-lg font-bold uppercase tracking-widest mb-4 border-b pb-2 text-slate-800" style={{ borderColor: primaryColor }}>Languages</h3>
               <ul className="text-[13px] space-y-1">
                 {languages.map((lang, i) => (
                    <li key={i}><strong className="text-slate-800">{lang.name}</strong> <span className="text-slate-500">— {lang.proficiency}</span></li>
                 ))}
               </ul>
+            </div>
+          )}
+          {interests.length > 0 && (
+            <div>
+              <h3 className="text-lg font-bold uppercase tracking-widest mb-4 border-b pb-2 text-slate-800" style={{ borderColor: primaryColor }}>Interests</h3>
+              <div className="flex flex-wrap gap-2">
+                {interests.map((interest, i) => (
+                  <span key={i} className="text-[12px] font-medium bg-slate-50 text-slate-600 px-3 py-1 border border-slate-200 rounded-full">
+                    {interest.name}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -120,6 +143,19 @@ export default function MinimalTemplate({ cvData }) {
                     <h4 className="font-bold text-[13px] text-slate-900">{proj.title}</h4>
                     {proj.link && <a href={proj.link} className="text-[11px] text-blue-500 block mb-1">{proj.link}</a>}
                     <p className="text-[12px] text-slate-600 line-clamp-2 leading-relaxed">{proj.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {certifications.length > 0 && (
+            <div>
+              <h3 className="text-lg font-bold uppercase tracking-widest mb-4 border-b pb-2 text-slate-800" style={{ borderColor: primaryColor }}>Certifications</h3>
+              <div className="space-y-3">
+                {certifications.map((cert, i) => (
+                  <div key={i}>
+                    <h4 className="font-bold text-[13px] text-slate-900">{cert.name}</h4>
+                    <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">{cert.issuer}</span>
                   </div>
                 ))}
               </div>
